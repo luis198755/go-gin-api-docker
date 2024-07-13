@@ -200,11 +200,20 @@ COPY ./main.go ./main.go
 # Download any dependencies
 RUN go mod init example/api
 
+# Add dependencies
+RUN go get github.com/swaggo/swag/cmd/swag
+
+# Install swag CLI Tool:
+RUN go install github.com/swaggo/swag/cmd/swag@latest
+
 # Add the required dependencies
 RUN go mod tidy
 
 # Copy the source from the current directory to the working Directory inside the container
-COPY . .
+#COPY ./docs ./docs
+RUN swag --version 
+
+RUN swag init
 
 # Build the Go app
 RUN go build -o main .
