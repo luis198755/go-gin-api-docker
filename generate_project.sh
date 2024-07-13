@@ -1,3 +1,11 @@
+#!/bin/bash
+
+# Create project directory
+#mkdir -p go-gin-api-docker
+#cd go-gin-api-docker
+
+# Create main.go
+cat > main.go << EOL
 package main
 
 import (
@@ -16,9 +24,9 @@ import (
 )
 
 type User struct {
-    ID    int    
-    Name  string 
-    Email string 
+    ID    int    `json:"id"`
+    Name  string `json:"name"`
+    Email string `json:"email"`
 }
 
 var db *sql.DB
@@ -178,3 +186,101 @@ func deleteUser(c *gin.Context) {
     c.Status(http.StatusNoContent)
 }
 
+EOL
+
+# Create Dockerfile
+cat > Dockerfile << EOL
+FROM golang:1.22.2-alpine AS builder
+
+WORKDIR /app
+
+# Copy go mod and sum files
+COPY go.mod go.sum ./
+
+# Download all dependencies
+RUN go mod download
+
+# Copy the source from the current directory to the working Directory inside the container
+COPY . .
+
+# Build the Go app
+RUN go build -o main .
+
+# Start a new stage from scratch
+FROM alpine:latest
+
+WORKDIR /root/
+
+# Copy the Pre-built binary file from the previous stage
+COPY --from=builder /app/main .
+
+# Expose port 8080 to the outside world
+EXPOSE 8080
+
+# Command to run the executable
+CMD ["./main"]
+EOL
+
+# Create docker-compose.yml
+cat > docker-compose.yml << EOL
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+      - DB_USER=root
+      - DB_PASSWORD=rootpassword
+      - DB_NAME=userdb
+
+  db:
+    image: mariadb:10.5
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: userdb
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  mariadb_data:
+EOL
+
+# Create init.sql
+cat > init.sql << EOL
+CREATE TABLE IF NOT EXISTS users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  email VARCHAR(100) NOT NULL
+);
+
+INSERT INTO users (name, email) VALUES 
+  ('John Doe', 'john@example.com'),
+  ('Jane Smith', 'jane@example.com');
+EOL
+
+# Initialize Go module
+go mod init example.com/api
+
+# Add dependencies
+go get github.com/gin-gonic/gin
+go get github.com/go-sql-driver/mysql
+go get github.com/swaggo/swag/cmd/swag
+go get github.com/swaggo/gin-swagger
+go get github.com/swaggo/files
+
+# Ensure all dependencies are properly recorded
+go mod tidy
+
+# Generate Swagger documentation
+go install github.com/swaggo/swag/cmd/swag@latest
+swag init
+
+echo "Project files have been generated successfully!"
+echo "go.mod and go.sum files have been created and updated."
+echo "To run the project, use: docker-compose up --build"
