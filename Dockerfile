@@ -3,10 +3,13 @@ FROM golang:1.22.2-alpine AS builder
 WORKDIR /app
 
 # Copy go mod and sum files
-COPY go.mod go.sum ./
+COPY ./main.go ./main.go
 
-# Download all dependencies
-RUN go mod download
+# Download any dependencies
+RUN go mod init example/api
+
+# Add the required dependencies
+RUN go mod tidy
 
 # Copy the source from the current directory to the working Directory inside the container
 COPY . .

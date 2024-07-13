@@ -20,7 +20,7 @@ import (
     _ "github.com/go-sql-driver/mysql"
     swaggerFiles "github.com/swaggo/files"
     ginSwagger "github.com/swaggo/gin-swagger"
-    _ "example.com/api/docs" // replace with actual path to your docs package
+    _ "example/api/docs" // replace with actual path to your docs package
 )
 
 type User struct {
@@ -195,10 +195,13 @@ FROM golang:1.22.2-alpine AS builder
 WORKDIR /app
 
 # Copy go mod and sum files
-COPY go.mod go.sum ./
+COPY ./main.go ./main.go
 
-# Download all dependencies
-RUN go mod download
+# Download any dependencies
+RUN go mod init example/api
+
+# Add the required dependencies
+RUN go mod tidy
 
 # Copy the source from the current directory to the working Directory inside the container
 COPY . .
@@ -265,7 +268,7 @@ INSERT INTO users (name, email) VALUES
 EOL
 
 # Initialize Go module
-go mod init example.com/api
+go mod init example/api
 
 # Add dependencies
 go get github.com/gin-gonic/gin
@@ -279,6 +282,13 @@ go mod tidy
 
 # Generate Swagger documentation
 go install github.com/swaggo/swag/cmd/swag@latest
+
+export PATH=$PATH:$HOME/go/bin
+
+source ~/.zshrc
+
+swag --version 
+
 swag init
 
 echo "Project files have been generated successfully!"

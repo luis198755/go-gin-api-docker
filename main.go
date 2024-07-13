@@ -12,7 +12,7 @@ import (
     _ "github.com/go-sql-driver/mysql"
     swaggerFiles "github.com/swaggo/files"
     ginSwagger "github.com/swaggo/gin-swagger"
-    _ "example.com/api/docs" // replace with actual path to your docs package
+    _ "example/api/docs" // replace with actual path to your docs package
 )
 
 type User struct {
